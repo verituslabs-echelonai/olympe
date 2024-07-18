@@ -685,9 +685,8 @@ class Pdraw(LogMixin):
 
         # store the information if it is supported and requested media
         # otherwise exit
-        if (
-            frame_type != od.VDEF_FRAME_TYPE_RAW
-            and frame_type != od.VDEF_FRAME_TYPE_CODED
+        if frame_type != od.VDEF_FRAME_TYPE_RAW and (
+            frame_type != od.VDEF_FRAME_TYPE_CODED
         ):
             self.logger.warning(
                 f"Ignoring unsupported media id {id_} " f"(type {video_info.format})"
@@ -698,7 +697,11 @@ class Pdraw(LogMixin):
         if self.frame_callbacks[media_type] is not None:
             requested_media = True
         elif any(map(lambda f: f is not None, self.outfiles[frame_type])):
-            requested_media = True
+            if frame_type != od.VDEF_FRAME_TYPE_CODED or (
+                data_format
+                == od.VDEF_CODED_DATA_FORMAT_AVCC
+            ):
+                requested_media = True
 
         if not requested_media:
             self.logger.info(
@@ -709,9 +712,11 @@ class Pdraw(LogMixin):
         self.streams[id_]["media_type"] = media_type
         self.streams[id_]["frame_type"] = frame_type
         self.streams[id_]["vdef_format"] = vdef_format
+        self.streams[id_]["data_format"] = data_format
 
         if frame_type == od.VDEF_FRAME_TYPE_CODED and (
-            od.VDEF_CODED_DATA_FORMAT_BYTE_STREAM
+            data_format
+            == od.VDEF_CODED_DATA_FORMAT_AVCC
         ):
             outfile = self.outfiles[frame_type]["data"]
             if outfile:
@@ -999,7 +1004,10 @@ class Pdraw(LogMixin):
 
         if f and not f.closed:
             if frame_type == od.VDEF_FRAME_TYPE_CODED:
-                if stream["track_id"] is not None:
+                if (
+                    stream["track_id"] is not None
+                    and stream["data_format"] == od.VDEF_CODED_DATA_FORMAT_AVCC
+                ):
                     track_id = stream["track_id"]
                     metadata_track_id = stream["metadata_track_id"]
                     h264_header = stream["h264_header"]

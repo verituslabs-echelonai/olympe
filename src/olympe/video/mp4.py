@@ -90,7 +90,7 @@ class Mp4Mux(LogMixin):
     def sync(self):
         if not self._mux:
             self.logger.error(f"mp4_mux_sync on closed file '{self._filepath}'")
-            return
+            return False
         res = od.mp4_mux_sync(self._mux)
         if res < 0:
             self.logger.error(f"mp4_mux_sync returned {res}")
@@ -235,7 +235,7 @@ class Mp4Mux(LogMixin):
                 self.logger.error(f"mp4_mux_track_add_sample returned {res}")
                 return False
 
-        return self.sync()
+        return True
 
     def set_metadata_mime_type(self, metadata_track_id, content_encoding, mime_type):
         res = od.mp4_mux_track_set_metadata_mime_type(
